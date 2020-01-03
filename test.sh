@@ -37,17 +37,18 @@ decodeBase58() {
 
 NN_ADDRESS=RDeckerSubnU8QVgrhj27apzUvbVK3pnTk
 NN_PUBKEY=0249eee7a3ad854f1d22c467b42dc73db94af7ce7837e15bfcf82f195cd5490d76
-NN_HASH160=2fedd5f73d46db8db8625eb5816dfb21f94529e2
-
-NN_PUBKEY=$($komodocli $asset validateaddress $nn_address | jq -r .pubkey)
-nob58=$(decodeBase58 $nn_address)
+# NN_HASH160=2fedd5f73d46db8db8625eb5816dfb21f94529e2
+# NN_PUBKEY=$($komodocli $asset validateaddress $nn_address | jq -r .pubkey)
+nob58=$(decodeBase58 $NN_ADDRESS)
 NN_HASH160=$(echo ${nob58:2:-8})
 # Source: https://github.com/webworker01/nntools/blob/master/splitfunds
 
 FROM_ADDRESS=RD6GgnrMpPaTSMn8vai6yiGA7mN4QGPVMY
-FROM_HASH160=29cfc6376255a78451eeb4b129ed8eacffa2feef
+# FROM_HASH160=29cfc6376255a78451eeb4b129ed8eacffa2feef
 FROM_PUBKEY=000000000000000000000000000000000000000000000000000000000000000000
 FROM_PRIVKEY=Up1YVLk7uuErCHVQyFCtfinZngmdwfyfc47WCQ8oJxgowEbuo6t4
+nob58f=$(decodeBase58 $FROM_ADDRESS)
+FROM_HASH160=$(echo ${nob58f:2:-8})
 
 TXFEE_SATOSHI=1000
 TEST_AMOUNT=100000
@@ -75,34 +76,37 @@ if [[ $utxo != "null" ]]; then
   rawtx="04000080" # tx header
   rawtx=$rawtx"85202f89" # versiongroupid
   rawtx=$rawtx"01" # number of inputs (1, as we take one utxo from explorer listunspent)
-  rawtx=$rawtx$rev_txid$vout_hex"00ffffffff"
+  rawtx=$rawtx$rev_txid$vout_hex"0000ffffffff" # 00 should be the scriptSig adapted to 0000 for non standard P2SH Script used
   # outputs
   #if [[ $SPLIT_COUNT -lt 253 ]]; then
-   if [[ $SPLIT_COUNT -lt 252 ]]; then # 253, but 1 output for "change" and we have 252
+  #if [[ $SPLIT_COUNT -lt 252 ]]; then # 253, but 1 output for "change" and we have 252
 
-        oc=$((SPLIT_COUNT+1))
+        oc=1
   	outputCount=$(printf "%02x" $oc)
 
 	rawtx=$rawtx$outputCount
-	for (( i=1; i<=$SPLIT_COUNT; i++ ))
-	do
+	#for (( i=1; i<=$SPLIT_COUNT; i++ ))
+	#do
+	SPLIT_VALUE_SATOSHI=$(jq -n "($satoshis - $TXFEE_SATOSHI")
+	echo "Received:" $SPLIT_VALUE_SATOSHI "("$TXFEE_SATOSHI" of fee on "$satoshis")"
 	value=$(printf "%016x" $SPLIT_VALUE_SATOSHI | dd conv=swab 2> /dev/null | rev)
 	rawtx=$rawtx$value
 	rawtx=$rawtx"2321"$NN_PUBKEY"ac"
-	done
+	#done
 
-        change=$(jq -n "($satoshis-$SPLIT_TOTAL_SATOSHI)/100000000")
-	change_satoshis=$(jq -n "$satoshis-$SPLIT_TOTAL_SATOSHI")
-	echo "Change:" $change "("$change_satoshis")"
-	value=$(printf "%016x" $change_satoshis | dd conv=swab 2> /dev/null | rev)
-	rawtx=$rawtx$value
+        # No change address
+	#change=$(jq -n "($satoshis-$SPLIT_TOTAL_SATOSHI)/100000000")
+	#change_satoshis=$(jq -n "$satoshis-$SPLIT_TOTAL_SATOSHI")
+	#echo "Change:" $change "("$change_satoshis")"
+	#value=$(printf "%016x" $change_satoshis | dd conv=swab 2> /dev/null | rev)
+	#rawtx=$rawtx$value
 	rawtx=$rawtx"1976a914"$FROM_HASH160"88ac" # len OP_DUP OP_HASH160 len hash OP_EQUALVERIFY OP_CHECKSIG
-  else
-	# more than 252 outputs not handled now (!) TODO
-	echo -e $RED"Error!"$RESET" More than 252 outputs not handled now!"
-	exit
-  	rawtx=$rawtx"00"
-  fi
+#  else
+#	# more than 252 outputs not handled now (!) TODO
+#	echo -e $RED"Error!"$RESET" More than 252 outputs not handled now!"
+#	exit
+#  	rawtx=$rawtx"00"
+#  fi
 
   nlocktime=$(printf "%08x" $(date +%s) | dd conv=swab 2> /dev/null | rev)
   rawtx=$rawtx$nlocktime
