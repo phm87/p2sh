@@ -21,9 +21,28 @@ MAGENTA="\033[35m"
 CYAN="\033[36m"     
 WHITE="\033[37m"    
 
+#base58 decode by grondilu https://github.com/grondilu/bitcoin-bash-tools/blob/master/bitcoin.sh
+declare -a base58=(
+      1 2 3 4 5 6 7 8 9
+    A B C D E F G H   J K L M N   P Q R S T U V W X Y Z
+    a b c d e f g h i j k   m n o p q r s t u v w x y z
+)
+unset dcr; for i in {0..57}; do dcr+="${i}s${base58[i]}"; done
+decodeBase58() {
+    local line
+    echo -n "$1" | sed -e's/^\(1*\).*/\1/' -e's/1/00/g' | tr -d '\n'
+    dc -e "$dcr 16o0$(sed 's/./ 58*l&+/g' <<<$1)p" |
+    while read line; do echo -n ${line/\\/}; done
+}
+
 NN_ADDRESS=RDeckerSubnU8QVgrhj27apzUvbVK3pnTk
 NN_PUBKEY=0249eee7a3ad854f1d22c467b42dc73db94af7ce7837e15bfcf82f195cd5490d76
 NN_HASH160=2fedd5f73d46db8db8625eb5816dfb21f94529e2
+
+NN_PUBKEY=$($komodocli $asset validateaddress $nn_address | jq -r .pubkey)
+nob58=$(decodeBase58 $nn_address)
+NN_HASH160=$(echo ${nob58:2:-8})
+# Source: https://github.com/webworker01/nntools/blob/master/splitfunds
 
 FROM_ADDRESS=RD6GgnrMpPaTSMn8vai6yiGA7mN4QGPVMY
 FROM_HASH160=29cfc6376255a78451eeb4b129ed8eacffa2feef
@@ -101,6 +120,8 @@ curluser=user
 curlpass=pass
 curlport=7771
 signed=$(curl -s --user $curluser:$curlpass --data-binary '{"jsonrpc": "1.0", "id":"curltest", "method": "signrawtransaction", "params": ["'$rawtx'", [], ["'$FROM_PRIVKEY'"]]}' -H 'content-type: text/plain;' http://127.0.0.1:$curlport/ | jq -r .result.hex)
+
+
 
 echo -e '\n'
 echo -e ${YELLOW}'Unsigned TX: '${RESET}$rawtx
