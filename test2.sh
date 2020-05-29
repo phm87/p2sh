@@ -10,7 +10,7 @@ ALICE_PRIVKEY=***
 curl -s https://kmdexplorer.io/insight-api-komodo/addr/$P2SH_ADDRESS/utxo > split_nn.utxos
 
 utxos=$(<split_nn.utxos)
-utxo=$(echo "$utxos" | jq "[.[] | select (.amount > $SPLIT_TOTAL and .confirmations > 0)][0]")
+utxo=$(echo "$utxos" | jq "[.[] | select (.amount > 0 and .confirmations > 0)][0]")
 if [[ $utxo != "null" ]]; then
   txid=$(echo "$utxo" | jq -r .txid)
   vout=$(echo "$utxo" | jq -r .vout)
