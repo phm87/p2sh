@@ -31,37 +31,26 @@ if [[ $utxo != "null" ]]; then
   
   oc=1
   outputCount=$(printf "%02x" $oc)
+  
+  rawtx=$rawtx$outputCount
+  value=$(printf "%016x" $satoshis | dd conv=swab 2> /dev/null | rev)
+  rawtx=$rawtx$value
+  rawtx=$rawtx"2321"$ALICE_PUBKEY"ac"
 
-
-
-	rawtx=$rawtx$outputCount
-	for (( i=1; i<=$SPLIT_COUNT; i++ ))
-	do
-	value=$(printf "%016x" $SPLIT_VALUE_SATOSHI | dd conv=swab 2> /dev/null | rev)
-	rawtx=$rawtx$value
-	rawtx=$rawtx"2321"$NN_PUBKEY"ac"
-	done
-
-        change=$(jq -n "($satoshis-$SPLIT_TOTAL_SATOSHI)/100000000")
-	change_satoshis=$(jq -n "$satoshis-$SPLIT_TOTAL_SATOSHI")
-	echo "Change:" $change "("$change_satoshis")"
-	value=$(printf "%016x" $change_satoshis | dd conv=swab 2> /dev/null | rev)
-	rawtx=$rawtx$value
-	rawtx=$rawtx"1976a914"$FROM_HASH160"88ac" # len OP_DUP OP_HASH160 len hash OP_EQUALVERIFY OP_CHECKSIG
-  else
-	# more than 252 outputs not handled now (!) TODO
-	echo -e $RED"Error!"$RESET" More than 252 outputs not handled now!"
-	exit
-  	rawtx=$rawtx"00"
-  fi
+#        change=$(jq -n "($satoshis-$SPLIT_TOTAL_SATOSHI)/100000000")
+#	change_satoshis=$(jq -n "$satoshis-$SPLIT_TOTAL_SATOSHI")
+#	echo "Change:" $change "("$change_satoshis")"
+#	value=$(printf "%016x" $change_satoshis | dd conv=swab 2> /dev/null | rev)
+#	rawtx=$rawtx$value
+#	rawtx=$rawtx"1976a914"$FROM_HASH160"88ac" # len OP_DUP OP_HASH160 len hash OP_EQUALVERIFY OP_CHECKSIG
 
   nlocktime=$(printf "%08x" $(date +%s) | dd conv=swab 2> /dev/null | rev)
   rawtx=$rawtx$nlocktime
   rawtx=$rawtx"000000000000000000000000000000" # sapling end of tx
 
-  #echo $rawtx
+  echo $rawtx
 else
-  echo -e $RED"Error!"$RESET" Nothing to split ... :("
+  echo -e $RED"Error!"$RESET" Nothing to spent from this address ... :("
 fi
 
 # signrawtransaction hex "[]" "[\"privkey\"]"
@@ -70,7 +59,6 @@ curdir=$(pwd)
 curluser=user
 curlpass=pass
 curlport=7771
-signed=$(curl -s --user $curluser:$curlpass --data-binary '{"jsonrpc": "1.0", "id":"curltest", "method": "signrawtransaction", "params": ["'$rawtx'", [], ["'$FROM_PRIVKEY'"]]}' -H 'content-type: text/plain;' http://127.0.0.1:$curlport/ | jq -r .result.hex)
 
 echo -e '\n'
 echo -e ${YELLOW}'Unsigned TX: '${RESET}$rawtx
