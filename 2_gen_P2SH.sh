@@ -92,3 +92,20 @@ echo "P2SH script                     = "$script;
 #return $out;
 #}
 
+#decodescript allows to verify that the script is synthaxically valid and convert it to an address
+
+decodescript=$(./komodo-cli decodescript $script)
+echo $decodescript
+p2sh_address=$(echo $decodescript | jq -r '.p2sh')
+echo "P2SH address = "$p2sh_address
+
+# TODO: Save p2sh script, address, blockheight into config2
+echo "script=$script" >> config2
+echo "address=$p2sh_address" >> config2
+echo "blockheight=$blockheight" >> config2
+
+# TODO: 1_1 config LN
+# TODO: check that there is no error in asm field
+
+echo "Please fund $p2sh_address with 0.1 KMD then run script 3 or 4"
+
