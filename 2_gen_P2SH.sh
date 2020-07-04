@@ -65,8 +65,14 @@ hash160() {
 #// https://github.com/KomodoPlatform/atomicDEX-API/blob/mm2/mm2src/coins/utxo.rs#L343
 #$out = "63";
 secret_hash=$(echo $preimage | hash160);
-script="63"$blockheight_le"b175"${config[bob_pubkey]}"ac6782""88a9"$secret_hash"88"${config[alice_pubkey]}"ac68"
-echo $script;
+echo "length blockheight = "$(printf '%x\n' ${#blockheight_le});
+echo "secret_hash                     = "$secret_hash;
+echo "length = "$(printf '%x' ${#secret_hash})
+echo "bob_pubkey                      = "${config[bob_pubkey]}
+echo "length = "$(printf '%x' ${#config[bob_pubkey]})
+echo "alice_pubkey                    = "${config[alice_pubkey]}
+script="6303"$blockheight_le"b17521"${config[bob_pubkey]}"ac6782""88a914"$secret_hash"8821"${config[alice_pubkey]}"ac68"
+echo "P2SH script                     = "$script;
 #$out .= $timelock;
 #// Return the memory representation of this integer as a byte array in little-endian byte order.
 #$out .= "b1";
